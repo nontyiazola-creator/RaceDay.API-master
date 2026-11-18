@@ -1,0 +1,11 @@
+services:
+  mvc:
+    build:
+      context: .
+      dockerfile: RaceDay.Mvc/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ApiSettings__BaseUrl=http://host.docker.internal:12319/
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,75 +1,135 @@
-﻿using System.Net.Http.Json;
+﻿
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace RaceDay.Mvc.Services
+namespace RaceDay.Mvc.Services;
+
+public class RaceDayApiClient
 {
-    public class RaceDayApiClient
+    private readonly IHttpClientFactory _factory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        private readonly IHttpClientFactory _factory;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        PropertyNameCaseInsensitive = true
+    };
 
-        private static readonly JsonSerializerOptions JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
+    private const string ApiSessionKey = "ApiSessionCookie";
 
-        public RaceDayApiClient(IHttpClientFactory factory, IHttpContextAccessor accessor)
+    public RaceDayApiClient(
+        IHttpClientFactory factory,
+        IHttpContextAccessor accessor)
+    {
+        _factory = factory;
+        _httpContextAccessor = accessor;
+    }
+
+    private HttpClient CreateClient()
+    {
+        return _factory.CreateClient("RaceDayApi");
+    }
+
+    private HttpRequestMessage CreateRequest(
+        HttpMethod method,
+        string url)
+    {
+        var request = new HttpRequestMessage(method, url);
+
+        // Forward the API's own session cookie.
+        string? apiCookie = _httpContextAccessor.HttpContext?
+            .Session.GetString(ApiSessionKey);
+
+        if (!string.IsNullOrWhiteSpace(apiCookie))
         {
-            _factory = factory;
-            _httpContextAccessor = accessor;
+            request.Headers.TryAddWithoutValidation(
+                "Cookie",
+                apiCookie);
         }
 
-        private HttpClient CreateClient()
+        return request;
+    }
+
+    public async Task<HttpResponseMessage> SendAsync(
+        HttpMethod method,
+        string url,
+        object? body = null)
+    {
+        var client = CreateClient();
+
+        using var request = CreateRequest(method, url);
+
+        if (body != null)
         {
-            return _factory.CreateClient("RaceDayApi");
+            request.Content = JsonContent.Create(body);
         }
 
-        private HttpRequestMessage CreateRequest(HttpMethod method, string url)
+        return await client.SendAsync(request);
+    }
+
+    public async Task<T?> ReadAsync<T>(
+        HttpResponseMessage response)
+    {
+        if (!response.IsSuccessStatusCode)
         {
-            var request = new HttpRequestMessage(method, url);
-
-            string? apiCookie = _httpContextAccessor.HttpContext?
-                .Session.GetString("ApiSessionCookie");
-
-            if (!string.IsNullOrWhiteSpace(apiCookie))
-            {
-                request.Headers.TryAddWithoutValidation("Cookie", apiCookie);
-            }
-
-            return request;
+            return default;
         }
 
-        public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? body = null)
+        string json = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<T>(
+            json,
+            JsonOptions);
+    }
+
+    public static string? ExtractSessionCookie(
+        HttpResponseMessage response)
+    {
+        if (!response.Headers.TryGetValues(
+            "Set-Cookie",
+            out var values))
         {
-            var client = CreateClient();
-            using var request = CreateRequest(method, url);
-
-            if (body != null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            return await client.SendAsync(request);
+            return null;
         }
 
-        public async Task<T?> ReadAsync<T>(HttpResponseMessage response)
-        {
-            if (!response.IsSuccessStatusCode)
-                return default;
+        // This MUST match the cookie name configured by the API.
+        string? sessionHeader = values.FirstOrDefault(value =>
+            value.StartsWith(
+                ".RaceDay.Session=",
+                StringComparison.OrdinalIgnoreCase));
 
-            string json = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<T>(json, JsonOptions);
+        // Only the name=value portion is needed in a Cookie request header.
+        return sessionHeader?.Split(';', 2)[0];
+    }
+
+    public async Task<HttpResponseMessage> UploadFileAsync(
+        string url,
+        IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new ArgumentException(
+                "A valid file must be supplied.",
+                nameof(file));
         }
 
-        public static string? ExtractSessionCookie(HttpResponseMessage response)
-        {
-            if (!response.Headers.TryGetValues("Set-Cookie", out var values))
-                return null;
+        var client = CreateClient();
 
-            string? sessionHeader = values.FirstOrDefault(v =>
-                v.StartsWith(".AspNetCore.Session=", StringComparison.OrdinalIgnoreCase));
+        using var request = CreateRequest(HttpMethod.Post, url);
+        using var form = new MultipartFormDataContent();
+        using var stream = file.OpenReadStream();
+        using var fileContent = new StreamContent(stream);
 
-            return sessionHeader?.Split(';', 2)[0];
-        }
+        fileContent.Headers.ContentType =
+            new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(file.ContentType)
+                    ? "application/octet-stream"
+                    : file.ContentType);
+
+        form.Add(fileContent, "file", file.FileName);
+
+        request.Content = form;
+
+        return await client.SendAsync(request);
     }
 }
