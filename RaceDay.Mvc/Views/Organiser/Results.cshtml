@@ -1,0 +1,84 @@
+﻿@model List<RaceDay.Mvc.ViewModels.Organiser.ResultViewModel>
+
+@{
+    ViewData["Title"] = "Manage Results";
+    int eventId = ViewBag.EventID ?? 0;
+}
+
+<div class="container py-4">
+    <h1 class="fw-bold">Manage Event Results</h1>
+    <p class="text-muted">View and update participant results.</p>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No results have been recorded for this event yet.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Participant</th>
+                        <th>Category</th>
+                        <th>Finish Time</th>
+                        <th>Position</th>
+                        <th>Update Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var result in Model)
+                    {
+                        <tr>
+                            <td>@result.ParticipantName</td>
+                            <td>@result.CategoryName</td>
+                            <td>
+                                @(result.FinishTime?.ToString(@"hh\:mm\:ss") ?? "Not recorded")
+                            </td>
+                            <td>
+                                @(result.FinishPosition?.ToString() ?? "Not recorded")
+                            </td>
+                            <td>
+                                <form asp-action="SaveResult" method="post">
+                                    <input type="hidden" name="EnrolmentID"
+                                           value="@result.EnrolmentID" />
+                                    <input type="hidden" name="eventId" value="@eventId" />
+
+                                    <div class="mb-2">
+                                        <input name="FinishTime"
+                                               type="time"
+                                               step="1"
+                                               class="form-control"
+                                               value="@result.FinishTime?.ToString(@"hh\:mm\:ss")"
+                                               required />
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <input name="FinishPosition"
+                                               type="number"
+                                               min="1"
+                                               class="form-control"
+                                               value="@result.FinishPosition"
+                                               placeholder="Position"
+                                               required />
+                                    </div>
+
+                                    <button type="submit"
+                                            class="btn btn-sm btn-primary">
+                                        Save Result
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <a asp-action="Index" class="btn btn-secondary mt-3">
+        Back to Dashboard
+    </a>
+</div>

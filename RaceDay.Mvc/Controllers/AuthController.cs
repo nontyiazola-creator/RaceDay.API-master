@@ -81,7 +81,18 @@ namespace RaceDay.Mvc.Controllers
             // 2. Read role and userID from the login response
             var loginJson = await response.Content.ReadAsStringAsync();
             HttpContext.Session.SetString("Role", ReadField(loginJson, "role") ?? "Participant");
-            HttpContext.Session.SetString("UserID", ReadField(loginJson, "userID") ?? "");
+            var userId = ReadField(loginJson, "userID");
+
+            if (int.TryParse(userId, out int parsedUserId))
+            {
+                HttpContext.Session.SetInt32("UserID", parsedUserId);
+            }
+            else
+            {
+                HttpContext.Session.Clear();
+                ModelState.AddModelError("", "Login succeeded, but the API returned an invalid user ID.");
+                return View(vm);
+            }
             HttpContext.Session.SetString("Email", vm.Email);
 
             // 3. Fetch the display name from the profile endpoint

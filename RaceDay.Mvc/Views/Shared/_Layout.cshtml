@@ -1,49 +1,171 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@{
+    var isLoggedIn = Context.Session.Keys.Contains("UserID");
+    var role = Context.Session.GetString("Role");
+    var displayName = Context.Session.GetString("DisplayName") ?? "RaceDay User";
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - RaceDay.Mvc</title>
+    <title>@ViewData["Title"] - RaceDay</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RaceDay.Mvc.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">RaceDay.Mvc</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+    <div class="raceday-shell">
+
+        <aside class="sidebar">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">R</span>
+                <span>RaceDay</span>
+            </a>
+
+            <div class="sidebar-label">MAIN MENU</div>
+
+            <nav class="sidebar-nav">
+                <a class="sidebar-link" asp-controller="Home" asp-action="Index">
+                    <span class="nav-icon">⌂</span>
+                    <span>Home</span>
+                </a>
+
+                @if (isLoggedIn && role == "Organiser")
+                {
+                    <div class="sidebar-label">ORGANISER</div>
+
+                    <a class="sidebar-link" asp-controller="Organiser" asp-action="Index">
+                        <span class="nav-icon">▦</span>
+                        <span>Dashboard</span>
+                    </a>
+                }
+
+                @if (isLoggedIn && role == "Participant")
+                {
+                    <div class="sidebar-label">PARTICIPANT</div>
+
+                    <a class="sidebar-link" asp-controller="Participant" asp-action="Index">
+                        <span class="nav-icon">◎</span>
+                        <span>Browse Events</span>
+                    </a>
+
+                    <a class="sidebar-link" asp-controller="Participant" asp-action="MyEvents">
+                        <span class="nav-icon">▣</span>
+                        <span>My Events</span>
+                    </a>
+
+                    <a class="sidebar-link" asp-controller="Participant" asp-action="MyResults">
+                        <span class="nav-icon">🏆</span>
+                        <span>My Results</span>
+                    </a>
+                }
+
+                @if (isLoggedIn)
+                {
+                    <div class="sidebar-label">ACCOUNT</div>
+
+                    <a class="sidebar-link" asp-controller="Profile" asp-action="Index">
+                        <span class="nav-icon">◉</span>
+                        <span>My Profile</span>
+                    </a>
+                }
+            </nav>
+
+            <div class="sidebar-bottom">
+                @if (isLoggedIn)
+                {
+                    <div class="user-card">
+                        <div class="user-avatar">
+                            @(string.IsNullOrWhiteSpace(displayName) ? "R" : displayName.Substring(0, 1).ToUpper())
+                        </div>
+                        <div class="user-details">
+                            <strong>@displayName</strong>
+                            <span>@role</span>
+                        </div>
+                    </div>
+
+                    <form asp-controller="Auth" asp-action="Logout" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="sidebar-link logout-link">
+                            <span class="nav-icon">↪</span>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a class="sidebar-link" asp-controller="Auth" asp-action="Login">
+                        <span class="nav-icon">→</span>
+                        <span>Login</span>
+                    </a>
+
+                    <a class="sidebar-link" asp-controller="Auth" asp-action="Register">
+                        <span class="nav-icon">＋</span>
+                        <span>Register</span>
+                    </a>
+                }
+
+                <a class="sidebar-link" asp-controller="Home" asp-action="Privacy">
+                    <span class="nav-icon">ⓘ</span>
+                    <span>Privacy</span>
+                </a>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+        </aside>
+
+        <div class="main-area">
+            <header class="top-header">
+                <div>
+                    <span class="header-eyebrow">RACEDAY EVENT MANAGEMENT</span>
+                    <h1>@ViewData["Title"]</h1>
+                </div>
+
+                @if (isLoggedIn)
+                {
+                    <div class="header-user">
+                        <span class="status-dot"></span>
+                        <span>@displayName</span>
+                    </div>
+                }
+                else
+                {
+                    <span class="header-tagline">Your next challenge starts here.</span>
+                }
+            </header>
+
+            <main role="main" class="page-content">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @RenderBody()
+            </main>
+
+            <footer class="site-footer">
+                <span>&copy; 2026 RaceDay. All rights reserved.</span>
+                <span>Run. Walk. Cycle. Achieve.</span>
+            </footer>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - RaceDay.Mvc - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

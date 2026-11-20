@@ -1,21 +1,159 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Http
+
+@{
     ViewData["Title"] = "Welcome to RaceDay";
+
+    var isLoggedIn = Context.Session.Keys.Contains("UserID");
+    var role = Context.Session.GetString("Role");
+    var displayName = Context.Session.GetString("DisplayName") ?? "there";
 }
 
-<div class="text-center py-5">
-    <h1 class="display-4 fw-bold" style="color:#1d3557;">
-        Welcome to RaceDay
-    </h1>
-    <p class="lead text-muted mb-4">
-        The platform for running, walking and cycling events
-    </p>
+@if (!isLoggedIn)
+{
+    <section class="hero-section">
+        <div class="hero-content">
+            <span class="hero-kicker">WELCOME TO RACEDAY</span>
 
-    <div class="d-flex justify-content-center gap-3">
-        <a asp-controller="Auth" asp-action="Login" class="btn btn-lg btn-raceday px-4">
-            Login
+            <h2>Every journey begins with a <span>single step.</span></h2>
+
+            <p>
+                Discover running, walking and cycling events.
+                Challenge yourself, connect with others and make every finish line count.
+            </p>
+
+            <div class="hero-actions">
+                <a asp-controller="Auth" asp-action="Register" class="btn btn-raceday">
+                    Get Started
+                </a>
+
+                <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-raceday">
+                    Sign In
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="hero-circle">
+                <span class="hero-symbol">🏃</span>
+            </div>
+            <div class="hero-floating-card">
+                <strong>Find your next challenge</strong>
+                <span>Run • Walk • Cycle</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="feature-section">
+        <div class="section-heading">
+            <span class="hero-kicker">WHY RACEDAY?</span>
+            <h2>Your event. Your journey.</h2>
+            <p>Everything you need to take part in exciting sporting events.</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏃</div>
+                <h3>Running Events</h3>
+                <p>Discover road races and challenge yourself to reach new goals.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚶</div>
+                <h3>Walking Events</h3>
+                <p>Enjoy community walks and take part at your own pace.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚴</div>
+                <h3>Cycling Events</h3>
+                <p>Find cycling challenges and experience the excitement of race day.</p>
+            </div>
+        </div>
+    </section>
+}
+else if (role == "Organiser")
+{
+    <section class="welcome-panel">
+        <span class="hero-kicker">ORGANISER WORKSPACE</span>
+        <h2>Welcome back, @displayName!</h2>
+        <p>
+            Manage your sporting events, organise categories,
+            monitor enrolments and record participant results.
+        </p>
+
+        <a asp-controller="Organiser" asp-action="Index" class="btn btn-raceday">
+            Open Organiser Dashboard
         </a>
-        <a asp-controller="Auth" asp-action="Register" class="btn btn-lg btn-outline-dark px-4">
-            Register
+    </section>
+
+    <section class="feature-grid dashboard-features">
+        <div class="feature-card">
+            <div class="feature-icon">📅</div>
+            <h3>Manage Events</h3>
+            <p>Create, update and manage your upcoming events.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">👥</div>
+            <h3>Track Enrolments</h3>
+            <p>View participants registered for your events.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🏆</div>
+            <h3>Record Results</h3>
+            <p>Capture finishing times and participant positions.</p>
+        </div>
+    </section>
+}
+else if (role == "Participant")
+{
+    <section class="welcome-panel">
+        <span class="hero-kicker">PARTICIPANT WORKSPACE</span>
+        <h2>Welcome back, @displayName!</h2>
+        <p>
+            Your next challenge is waiting. Explore upcoming events,
+            manage your enrolments and keep track of your results.
+        </p>
+
+        <div class="hero-actions">
+            <a asp-controller="Participant" asp-action="Index" class="btn btn-raceday">
+                Browse Events
+            </a>
+
+            <a asp-controller="Participant" asp-action="MyEvents" class="btn btn-outline-raceday">
+                My Events
+            </a>
+        </div>
+    </section>
+
+    <section class="feature-grid dashboard-features">
+        <div class="feature-card">
+            <div class="feature-icon">🔎</div>
+            <h3>Discover Events</h3>
+            <p>Find running, walking and cycling events to join.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3>My Enrolments</h3>
+            <p>Keep track of the events you have joined.</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🥇</div>
+            <h3>My Results</h3>
+            <p>Review your recorded race results and achievements.</p>
+        </div>
+    </section>
+}
+else
+{
+    <section class="welcome-panel">
+        <h2>Welcome to RaceDay!</h2>
+        <p>Your account role could not be identified. Please sign in again.</p>
+        <a asp-controller="Auth" asp-action="Login" class="btn btn-raceday">
+            Sign In
         </a>
-    </div>
-</div>
+    </section>
+}
